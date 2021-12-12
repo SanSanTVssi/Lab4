@@ -5,6 +5,7 @@
 #include <iostream>
 #include <concepts>
 #include <functional>
+#include <string>
 
 namespace my_std {
 
@@ -36,14 +37,32 @@ namespace my_std {
 
 			value operator()(value val) override { return _functor(val); }
 		};
+
+		bool static Comparator(universalStrign<charT>& str1, universalStrign<charT>& str2,
+			std::function<bool(charT, charT)> predicat) {
+			std::size_t size = std::min(str1.size(), str2.size()) + 1;
+			for (size_t i = 0; i < size; i++)
+			{
+				if (!predicat(str1.data[i], str2.data[i])) {
+					return false;
+				}
+			}
+			return true;
+		}
+
 	public:
-		universalStrign() : _size(0), data() { }
+		universalStrign() : _size(0), data() { data.push_back(charT()); }
 
-		universalStrign(charT value) : _size(1), data(value) { }
+		universalStrign(charT value) : universalStrign() { 
+			universalStrign::push_back(value);
+		}
 
-		[[maybe_unused]] universalStrign(std::size_t, charT);
-
-		[[maybe_unused]] universalStrign(std::size_t);
+		[[maybe_unused]] universalStrign(std::size_t size, charT value = charT()) : universalStrign() {
+			for (std::size_t i = 0; i < size; i++)
+			{
+				universalStrign<charT>::push_back(value);
+			}
+		}
 
 		universalStrign(universalStrign&) = default;
 
@@ -60,15 +79,19 @@ namespace my_std {
 
 		universalStrign operator=(universalStrign&&) noexcept;
 
+		~universalStrign() { clear(); }
+
 		std::size_t size() const { return _size; }
 
-		bool isEmpty() const  { return data.empty(); }
+		bool isEmpty() const  { return !_size; }
 
 		void pop_front();
 
 		void pop_back();
 
 		void push_back(charT);
+
+		void push_back(universalStrign);
 
 		void push_front(charT);
 
@@ -92,33 +115,54 @@ namespace my_std {
 			}
 		}
 		
+		friend universalStrign operator+(universalStrign string1, universalStrign string2) {
+			auto result = universalStrign<charT>();
+			for (size_t i = 0; i < string1.size(); i++)
+			{
+				result.push_back(string1[i]);
+			}
+			for (size_t i = 0; i < string2.size(); i++)
+			{
+				result.push_back(string2[i]);
+			}
+			return universalStrign(result);
+		}
 
-		///>
-		friend universalStrign operator+(universalStrign, universalStrign);
+		friend universalStrign operator*(universalStrign string, std::size_t times) {
+			auto result = string;
 
-		///>
-		template <typename T>
-		friend universalStrign operator*(universalStrign, T);
+			for (size_t i = 0; i < times - 1; i++)
+			{
+				result.push_back(string);
+			}
+			return universalStrign(result);
+		}
 
-		///>
-		friend bool operator==(universalStrign, universalStrign);
+		friend bool operator==(universalStrign& string1, universalStrign& string2) {
+			auto equal = [](charT val1, charT val2)->bool { return val1 == val2; };
+			return universalStrign<charT>::Comparator(string1, string2, equal);
+		}
 
-		///>
-		friend bool operator!=(universalStrign, universalStrign);
+		friend bool operator!=(universalStrign& string1, universalStrign& string2) {
+			return !operator==(string1, string2);
+		}
 
-		///>
-		friend bool operator>=(universalStrign, universalStrign);
+		friend bool operator>=(universalStrign& string1, universalStrign& string2) {
+			auto bigger_or_equal = [](charT val1, charT val2)->bool { return val1 >= val2; };
+			return universalStrign<charT>::Comparator(string1, string2, bigger_or_equal);
+		}
 
-		///>
-		friend bool operator>(universalStrign, universalStrign);
+		friend bool operator>(universalStrign& string1, universalStrign& string2) {
+			return operator>=(string1, string2) && operator!=(string1, string2);
+		}
 
-		///>
-		friend bool operator<=(universalStrign, universalStrign);
+		friend bool operator<=(universalStrign& string1, universalStrign& string2) {
+			return !operator>(string1, string2);
+		}
 
-		///>
-		friend bool operator<(universalStrign, universalStrign);
-
-		//> На месте
+		friend bool operator<(universalStrign& string1, universalStrign& string2) {
+			return !operator>=(string1, string2);
+		}
 
 		template <class Functor = defaultTransformer<charT>>
 		void transform(Functor functor = Functor()) {
@@ -134,9 +178,6 @@ namespace my_std {
 				data[i] = functor->operator()(data[i]);
 			}
 		}
-		//<
-
-		//> Создание новой строки
 
 		template <class Functor = defaultTransformer<charT>>
 		friend universalStrign transform(universalStrign& other, Functor functor = Functor()) {
@@ -157,39 +198,38 @@ namespace my_std {
 			}
 			return universalStrign(result);
 		}
-		//<
 
-		///>
-		friend universalStrign make_string(const charT*);
+		friend std::istream& operator>>(std::istream& input, universalStrign& value) {
+			std::string temp;
+			try {
+				input >> temp;
+			}
+			catch (const std::exception& ex) {
+				throw ex;
+			}
+			for (auto item : temp) {
+				value.push_back(static_cast<charT>(item));
+			}
+			return input;
+		}
 
-		///>
-		friend universalStrign make_string(const charT*, const charT*);
-
-		///>
-		void scan();
+		friend std::ostream& operator<<(std::ostream& out, universalStrign& value) {
+			for (size_t i = 0; i < value.size(); i++)
+			{
+				try {
+					out << value[i];
+				}
+				catch (const std::exception& ex) {
+					throw ex;
+				}
+			}
+			return out;
+		}
 
 	private:
 		std::size_t _size;
 		std::vector<charT> data;
 	};
-
-	template<class charT>
-	universalStrign<charT>::universalStrign(std::size_t size, charT value) : universalStrign()
-	{
-		for (std::size_t i = 0; i < size; i++)
-		{
-			universalStrign<charT>::push_back(value);
-		}
-	}
-
-	template<class charT>
-	universalStrign<charT>::universalStrign(std::size_t size) : universalStrign()
-	{
-		for (std::size_t i = 0; i < size; i++)
-		{
-			universalStrign<charT>::push_back(charT());
-		}
-	}
 
 	template<class charT>
 	inline universalStrign<charT>::universalStrign(universalStrign&& other) noexcept
@@ -207,10 +247,10 @@ namespace my_std {
 	template<class charT>
 	universalStrign<charT>::universalStrign(const charT* Array, const charT* ArrayEnd) : universalStrign()
 	{
-		for (std::size_t i = 0; Array + i != ArrayEnd; i++)
-		{
+		for (std::size_t i = 0; Array + i != ArrayEnd; i++) {
 			universalStrign<charT>::push_back(Array[i]);
 		}
+		universalStrign<charT>::push_back(*ArrayEnd);
 	}
 
 	template<class charT>
@@ -231,8 +271,7 @@ namespace my_std {
 			std::size_t i;
 			for (i = 0, size--; i < size; i++) data[i] = data[i + 1];
 			data[size] = temp;
-			data.pop_back();
-			_size--;
+			universalStrign<charT>::pop_back();
 		}
 	}
 
@@ -241,6 +280,8 @@ namespace my_std {
 	{
 		if (_size) {
 			data.pop_back();
+			data.pop_back();
+			data.push_back(charT());
 			_size--;
 		}
 	}
@@ -248,8 +289,21 @@ namespace my_std {
 	template<class charT>
 	void universalStrign<charT>::push_back(charT value)
 	{
-		data.push_back(value);
+		data[_size] = value;
+		data.push_back(charT());
 		_size++;
+	}
+
+	template<class charT>
+	void universalStrign<charT>::push_back(universalStrign<charT> other)
+	{
+		data.pop_back();
+		for (size_t i = 0; i < other.size(); i++)
+		{
+			data.push_back(other.data[i]);
+		}
+		data.push_back(charT());
+		_size += other.size();
 	}
 
 	template<class charT>
@@ -261,9 +315,8 @@ namespace my_std {
 		while (size > 0) {
 			data[size--] = data[size - 1];
 		}
-		data.push_back(temp);
+		universalStrign<charT>::push_back(temp);
 		data[0] = value;
-		_size++;
 	}
 
 	template<class charT>
@@ -285,5 +338,20 @@ namespace my_std {
 		else {
 			throw std::out_of_range("Out of range error [universalStrign<charT>::operator[]]");
 		}
+	}
+
+	template <class charT>
+	universalStrign<charT> make_string(const charT* value) { return universalStrign(value); }
+
+	template <class charT>
+	static universalStrign<charT> make_string(const charT* begin, const charT* end) { return universalStrign(begin, end); }
+
+	template <class T, class U>
+	universalStrign<T> convert(universalStrign<U>& str) {
+		universalStrign<T> result;
+		for (size_t i = 0; i < str.size(); i++) {
+			result.push_back(static_cast<T>(str[i]));
+		}
+		return result;
 	}
 }
