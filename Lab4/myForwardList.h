@@ -29,7 +29,7 @@ namespace my_std {
 
         ~forward_list() { clear(); }
 
-        forward_list& operator=(forward_list&);
+        forward_list& operator=(forward_list&) = default;
 
         forward_list& operator=(forward_list&&) noexcept;
 
@@ -88,7 +88,7 @@ namespace my_std {
             const_iterator() = default;
             const_iterator(node right_side_hand) : iterator(right_side_hand) { }
 
-            //int operator*() { return pointer->data; }
+            int operator*() { return pointer->data; }
         };
 
         iterator begin() { return iterator{ root }; }
@@ -130,16 +130,6 @@ namespace my_std {
     forward_list<value_type>::forward_list(forward_list&& other) noexcept : Size(other.Size), root(other.root) {
         other.Size = 0;
         other.root.reset();
-    }
-
-    template<class value_type>
-    forward_list<value_type>& forward_list<value_type>::operator=(forward_list<value_type>&other)
-    {
-        for (size_t i = 0; i < other.size(); i++)
-        {
-            push_back(other[i]);
-        }
-        return *this;
     }
 
     template<class value_type>
@@ -312,6 +302,3 @@ namespace my_std {
 
 }
 
-
-
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers

@@ -87,13 +87,13 @@ TEST(universalStrign_complicative_functions, splits) {
 
 TEST(universalStrign_Functor, static_polimorf_in_place) {
 	auto instance = universalStrign<char>("TextTextText");
-	auto instance_temp = instance;
+	auto to_compare = universalStrign<char>("TextTextText");
 	instance.transform([](char value)->char {
 		return value + 2;
 		});
 	for (size_t i = 0; i < instance.size(); i++)
 	{
-		EXPECT_EQ(instance_temp[i] + 2, instance[i]);
+		EXPECT_EQ(to_compare[i] + 2, instance[i]);
 	}
 
 	struct otherFunctor {
@@ -102,13 +102,13 @@ TEST(universalStrign_Functor, static_polimorf_in_place) {
 	instance.transform<otherFunctor>();
 	for (size_t i = 0; i < instance.size(); i++)
 	{
-		EXPECT_EQ(instance_temp[i] + 5, instance[i]);
+		EXPECT_EQ(to_compare[i] + 5, instance[i]);
 	}
 }
 
 TEST(universalStrign_Functor, dynamic_polimorf_in_place) {
 	auto instance = universalStrign<char>("TextTextText");
-	auto instance_temp = instance;
+	auto to_compare = universalStrign<char>("TextTextText");
 
 	struct otherFunctor : public ITransformer<char> {
 	public:
@@ -118,7 +118,7 @@ TEST(universalStrign_Functor, dynamic_polimorf_in_place) {
 	instance.transformDyn(&functor);
 	for (size_t i = 0; i < instance.size(); i++)
 	{
-		EXPECT_EQ(instance_temp[i] + 3, instance[i]);
+		EXPECT_EQ(to_compare[i] + 3, instance[i]);
 	}
 }
 

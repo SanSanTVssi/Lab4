@@ -6,28 +6,22 @@
 #include <concepts>
 #include <functional>
 #include <string>
+#include "framework.h"
 
 namespace my_std {
 
-	template <typename value>
+	template <class charT>
+	using DefaultContainer = std::vector<charT>;
+
+	template <class value>
 	class ITransformer {
 	public:
 		virtual value operator()(value) = 0;
 	};
 
-	/*template<typename T>
-	concept charType =
-		requires(T a) {
-			{ a } -> std::convertible_to<bool>;
-			{ a } -> std::convertible_to<int>;
-			{ a } -> std::convertible_to<unsigned>;
-			{ a } -> std::convertible_to<char>;
-			{ a } -> std::convertible_to<wchar_t>;
-	};*/
-
-	template <class charT>
+	template <class charT, class Container = DefaultContainer<charT>>
 	class universalStrign {
-		template <typename value>
+		template <class value>
 		class defaultTransformer : public ITransformer<value> {
 		private:
 			std::function<value(value)> _functor;
@@ -91,7 +85,7 @@ namespace my_std {
 
 		void push_back(charT);
 
-		void push_back(universalStrign);
+		void push_back(const universalStrign&);
 
 		void push_front(charT);
 
@@ -101,7 +95,7 @@ namespace my_std {
 
 		charT operator[](std::size_t) const;
 
-		universalStrign split(std::size_t index) {
+		universalStrign split(std::size_t index) const {
 			if (index < _size) {
 				auto result = universalStrign<charT>();
 				for (size_t i = index; i < _size; i++)
@@ -228,24 +222,24 @@ namespace my_std {
 
 	private:
 		std::size_t _size;
-		std::vector<charT> data;
+		Container data;
 	};
 
-	template<class charT>
-	inline universalStrign<charT>::universalStrign(universalStrign&& other) noexcept
+	template<class charT, class Container>
+	inline universalStrign<charT, Container>::universalStrign(universalStrign&& other) noexcept
 		: _size(other._size), data(std::move(other.data)) { other._size = 0; }
 
-	template<class charT>
-	universalStrign<charT>::universalStrign(const charT* Array) : universalStrign()
+	template<class charT, class Container>
+	universalStrign<charT, Container>::universalStrign(const charT* Array) : universalStrign()
 	{
 		for (std::size_t i = 0; Array[i] != 0; i++)
 		{
-			universalStrign<charT>::push_back(Array[i]);
+			universalStrign<charT, Container>::push_back(Array[i]);
 		}
 	}
 
-	template<class charT>
-	universalStrign<charT>::universalStrign(const charT* Array, const charT* ArrayEnd) : universalStrign()
+	template<class charT, class Container>
+	universalStrign<charT, Container>::universalStrign(const charT* Array, const charT* ArrayEnd) : universalStrign()
 	{
 		for (std::size_t i = 0; Array + i != ArrayEnd; i++) {
 			universalStrign<charT>::push_back(Array[i]);
@@ -253,8 +247,8 @@ namespace my_std {
 		universalStrign<charT>::push_back(*ArrayEnd);
 	}
 
-	template<class charT>
-	universalStrign<charT> universalStrign<charT>::operator=(universalStrign<charT>&& other) noexcept
+	template<class charT, class Container>
+	universalStrign<charT, Container> universalStrign<charT, Container>::operator=(universalStrign<charT, Container>&& other) noexcept
 	{
 		_size = other._size;
 		data = std::move(other.data);
@@ -262,8 +256,8 @@ namespace my_std {
 		return *this;
 	}
 
-	template<class charT>
-	void universalStrign<charT>::pop_front()
+	template<class charT, class Container>
+	void universalStrign<charT, Container>::pop_front()
 	{
 		if (_size) {
 			std::size_t size = _size;
@@ -275,8 +269,8 @@ namespace my_std {
 		}
 	}
 
-	template<class charT>
-	void universalStrign<charT>::pop_back()
+	template<class charT, class Container>
+	void universalStrign<charT, Container>::pop_back()
 	{
 		if (_size) {
 			data.pop_back();
@@ -286,16 +280,16 @@ namespace my_std {
 		}
 	}
 
-	template<class charT>
-	void universalStrign<charT>::push_back(charT value)
+	template<class charT, class Container>
+	void universalStrign<charT, Container>::push_back(charT value)
 	{
 		data[_size] = value;
 		data.push_back(charT());
 		_size++;
 	}
 
-	template<class charT>
-	void universalStrign<charT>::push_back(universalStrign<charT> other)
+	template<class charT, class Container>
+	void universalStrign<charT, Container>::push_back(const universalStrign<charT, Container>& other)
 	{
 		data.pop_back();
 		for (size_t i = 0; i < other.size(); i++)
@@ -306,10 +300,9 @@ namespace my_std {
 		_size += other.size();
 	}
 
-	template<class charT>
-	void universalStrign<charT>::push_front(charT value)
+	template<class charT, class Container>
+	void universalStrign<charT, Container>::push_front(charT value)
 	{
-		data.reserve(1);
 		std::size_t size = _size;
 		charT temp = data[--size];
 		while (size > 0) {
@@ -319,8 +312,8 @@ namespace my_std {
 		data[0] = value;
 	}
 
-	template<class charT>
-	charT& universalStrign<charT>::operator[](std::size_t index)
+	template<class charT, class Container>
+	charT& universalStrign<charT, Container>::operator[](std::size_t index)
 	{
 		if (index < _size) {
 			return data[index];
@@ -329,8 +322,8 @@ namespace my_std {
 			throw std::out_of_range("Out of range error [universalStrign<charT>::operator[]]");
 		}
 	}
-	template<class charT>
-	charT universalStrign<charT>::operator[](std::size_t index) const
+	template<class charT, class Container>
+	charT universalStrign<charT, Container>::operator[](std::size_t index) const
 	{
 		if (index < _size) {
 			return data[index];
@@ -340,11 +333,11 @@ namespace my_std {
 		}
 	}
 
-	template <class charT>
-	universalStrign<charT> make_string(const charT* value) { return universalStrign(value); }
+	template<class charT, class Container = DefaultContainer<charT>>
+	universalStrign<charT, Container> make_string(const charT* value) { return universalStrign<charT, Container>(value); }
 
-	template <class charT>
-	static universalStrign<charT> make_string(const charT* begin, const charT* end) { return universalStrign(begin, end); }
+	template<class charT, class Container = DefaultContainer<charT>>
+	static universalStrign<charT, Container> make_string(const charT* begin, const charT* end) { return universalStrign<charT, Container>(begin, end); }
 
 	template <class T, class U>
 	universalStrign<T> convert(universalStrign<U>& str) {
